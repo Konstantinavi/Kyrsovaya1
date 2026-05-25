@@ -94,3 +94,24 @@ void EnsureProcessesCapacity(INT needed);
 void EnsureRenderItemsCapacity(INT needed);
 void FreeProcessesArray();
 INT GetProcesses();
+
+void GetProcessorTopology();
+void InitStaticHardwareInfo();
+void UpdateSystemPerformanceData();
+ProcessCategory DetectProcessCategory(DWORD pid, const WCHAR* name);
+unsigned long long FileTimeToQuadWord(const FILETIME* ft);
+std::string WStringToString(const WCHAR* wstr);
+std::string FormatMemory(DWORD bytes);
+int FindPidInCpuHistory(DWORD pid);
+int AddPidToCpuHistory(DWORD pid);
+double GetProcessCpu(DWORD pid, unsigned long long curKernel, unsigned long long curUser, unsigned long long sysDelta);
+int FindPidInDiskHistory(DWORD pid);
+int AddPidToDiskHistory(DWORD pid);
+double GetProcessDisk(DWORD pid, unsigned long long readBytes, unsigned long long writeBytes);
+double GetRealNetworkUsage(ProcessInfo& proc, const IO_COUNTERS& ioCounters, unsigned long long currentTime);
+
+
+
+
+
+
