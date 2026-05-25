@@ -137,3 +137,50 @@ double GetProcessCpu(DWORD pid, unsigned long long curKernel, unsigned long long
     }
     return 0.0;
 }
+
+int FindPidInDiskHistory(DWORD pid) {
+    for (int i = 0; i < diskHistoryCount; i++) if (diskHistory[i].pid == pid) return i;
+    return -1;
+}
+
+int AddPidToDiskHistory(DWORD pid) {
+    if (diskHistoryCount >= diskHistoryCapacity) {
+        int newCap = (diskHistoryCapacity == 0) ? 100 : diskHistoryCapacity * 2;
+        DiskStats* newArr = new DiskStats[newCap];
+        for (int i = 0; i < diskHistoryCount; i++) newArr[i] = diskHistory[i];
+        delete[] diskHistory;
+        diskHistory = newArr;
+        diskHistoryCapacity = newCap;
+    }
+    diskHistory[diskHistoryCount].pid = pid;
+    diskHistory[diskHistoryCount].lastRead = 0;
+    diskHistory[diskHistoryCount].lastWrite = 0;
+    diskHistory[diskHistoryCount].lastTime = GetTickCount64();
+    return diskHistoryCount++;
+}
+
+double GetProcessDisk(DWORD pid, unsigned long long readBytes, unsigned long long writeBytes) {
+    unsigned long long now = GetTickCount64();
+    int idx = FindPidInDiskHistory(pid);
+    if (idx != -1) {
+        unsigned long long deltaTime = now - diskHistory[idx].lastTime;
+        if (deltaTime > 0) {
+            double mbps = static_cast<double>((readBytes - diskHistory[idx].lastRead) +
+                (writeBytes - diskHistory[idx].lastWrite)) / (1048576.0 * (deltaTime / 1000.0));
+            diskHistory[idx].lastRead = readBytes;
+            diskHistory[idx].lastWrite = writeBytes;
+            diskHistory[idx].lastTime = now;
+            return (mbps < 0) ? 0 : mbps;
+        }
+    }
+    else {
+        int newIdx = AddPidToDiskHistory(pid);
+        if (newIdx != -1) {
+            diskHistory[newIdx].lastRead = readBytes;
+            diskHistory[newIdx].lastWrite = writeBytes;
+            diskHistory[newIdx].lastTime = now;
+        }
+    }
+    return 0.0;
+}
+
