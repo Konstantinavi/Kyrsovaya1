@@ -115,3 +115,25 @@ int AddPidToCpuHistory(DWORD pid) {
     cpuHistory[cpuHistoryCount].isActive = TRUE;
     return cpuHistoryCount++;
 }
+
+double GetProcessCpu(DWORD pid, unsigned long long curKernel, unsigned long long curUser, unsigned long long sysDelta) {
+    int idx = FindPidInCpuHistory(pid);
+    if (idx != -1) {
+        unsigned long long prevTotal = cpuHistory[idx].lastKernel + cpuHistory[idx].lastUser;
+        unsigned long long curTotal = curKernel + curUser;
+        if (curTotal >= prevTotal && sysDelta > 0) {
+            double percent = static_cast<double>((curTotal - prevTotal) * 100) / static_cast<double>(sysDelta);
+            cpuHistory[idx].lastKernel = curKernel;
+            cpuHistory[idx].lastUser = curUser;
+            return (percent > 100) ? 100 : (percent < 0 ? 0 : percent);
+        }
+    }
+    else {
+        int newIdx = AddPidToCpuHistory(pid);
+        if (newIdx != -1) {
+            cpuHistory[newIdx].lastKernel = curKernel;
+            cpuHistory[newIdx].lastUser = curUser;
+        }
+    }
+    return 0.0;
+}
