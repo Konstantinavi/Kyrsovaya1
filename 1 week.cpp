@@ -40,3 +40,49 @@ void RefreshGuiProcessesList() {
     ClearGuiArray();
     EnumWindows(EnumWindowsProc, 0);
 }
+void ClearProcessesData() {
+    if (processes != nullptr) {
+        for (INT i = 0; i < processesCount; i++) {
+            delete[] processes[i].name;
+            processes[i].name = nullptr;
+        }
+    }
+    processesCount = 0;
+}
+
+void EnsureProcessesCapacity(INT needed) {
+    if (needed <= processesCapacity) return;
+    INT newCapacity = (processesCapacity == 0) ? 100 : processesCapacity * 2;
+    while (newCapacity < needed) newCapacity *= 2;
+
+    ProcessInfo* newArray = new ProcessInfo[newCapacity]();
+    for (INT i = 0; i < processesCount; i++) {
+        newArray[i] = processes[i];
+    }
+    delete[] processes;
+    processes = newArray;
+    processesCapacity = newCapacity;
+}
+
+void EnsureRenderItemsCapacity(INT needed) {
+    if (needed <= renderItemsCapacity) return;
+    INT newCapacity = (renderItemsCapacity == 0) ? 100 : renderItemsCapacity * 2;
+    while (newCapacity < needed) newCapacity *= 2;
+    RenderItem* newArray = new RenderItem[newCapacity]();
+    for (INT i = 0; i < renderItemsCount; i++) newArray[i] = renderItems[i];
+    delete[] renderItems;
+    renderItems = newArray;
+    renderItemsCapacity = newCapacity;
+}
+
+void FreeProcessesArray() {
+    if (processes != nullptr) {
+        for (INT i = 0; i < processesCount; i++) {
+            delete[] processes[i].name;
+        }
+        delete[] processes;
+        processes = nullptr;
+        processesCount = 0;
+        processesCapacity = 0;
+    }
+}
