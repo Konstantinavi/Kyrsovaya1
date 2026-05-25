@@ -35,6 +35,30 @@ void InitStaticHardwareInfo() {
         sysHardware.ramTotalGB = memStatus.ullTotalPhys / (1024.0 * 1024.0 * 1024.0);
     }
 }
+
+void UpdateSystemPerformanceData() {
+    sysHardware.totalProcesses = processesCount;
+    sysHardware.totalThreads = globalTotalThreads;
+    sysHardware.totalHandles = globalTotalHandles;
+
+    unsigned long long systemUptime = GetTickCount64() / 1000;
+    DWORD days = static_cast<DWORD>(systemUptime / 86400);
+    DWORD hours = static_cast<DWORD>((systemUptime % 86400) / 3600);
+    DWORD minutes = static_cast<DWORD>((systemUptime % 3600) / 60);
+    DWORD seconds = static_cast<DWORD>(systemUptime % 60);
+
+    char uptimeBuffer[64];
+    sprintf_s(uptimeBuffer, "%lu:%02lu:%02lu:%02lu", days, hours, minutes, seconds);
+    sysHardware.uptimeStr = uptimeBuffer;
+
+    MEMORYSTATUSEX memStatus;
+    memStatus.dwLength = sizeof(memStatus);
+    if (GlobalMemoryStatusEx(&memStatus)) {
+        sysHardware.ramTotalGB = memStatus.ullTotalPhys / (1024.0 * 1024.0 * 1024.0);
+        sysHardware.ramUsedGB = (memStatus.ullTotalPhys - memStatus.ullAvailPhys) / (1024.0 * 1024.0 * 1024.0);
+        sysHardware.ramFreeGB = memStatus.ullAvailPhys / (1024.0 * 1024.0 * 1024.0);
+    }
+}
     
 ProcessCategory DetectProcessCategory(DWORD pid, const WCHAR* name) {
     if (_wcsicmp(name, L"svchost.exe") == 0 || _wcsicmp(name, L"csrss.exe") == 0 ||
