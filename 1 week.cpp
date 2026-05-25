@@ -1,5 +1,16 @@
 #include 'common.h'
 
+ProcessCategory DetectProcessCategory(DWORD pid, const WCHAR* name) {
+    if (_wcsicmp(name, L"svchost.exe") == 0 || _wcsicmp(name, L"csrss.exe") == 0 ||
+        _wcsicmp(name, L"explorer.exe") == 0 || _wcsicmp(name, L"services.exe") == 0 ||
+        _wcsicmp(name, L"lsass.exe") == 0 || _wcsicmp(name, L"wininit.exe") == 0 ||
+        _wcsicmp(name, L"winlogon.exe") == 0 || _wcsicmp(name, L"dwm.exe") == 0) {
+        return CAT_WINDOWS;
+    }
+    if (IsPidInGuiArray(pid)) return CAT_APP;
+    return CAT_BACKGROUND;
+}
+
 unsigned long long FileTimeToQuadWord(const FILETIME* ft) {
     if (ft == nullptr) return 0;
     ULARGE_INTEGER uli;
