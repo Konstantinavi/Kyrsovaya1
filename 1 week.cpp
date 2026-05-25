@@ -1,5 +1,41 @@
 #include 'common.h'
 
+void GetProcessorTopology() {
+    SYSTEM_INFO sysInfo;
+    GetSystemInfo(&sysInfo);
+    systemLogicalProcs = sysInfo.dwNumberOfProcessors;
+
+    DWORD length = 0;
+    GetLogicalProcessorInformation(nullptr, &length);
+    if (length > 0) {
+        PSYSTEM_LOGICAL_PROCESSOR_INFORMATION buffer = (PSYSTEM_LOGICAL_PROCESSOR_INFORMATION)malloc(length);
+        if (buffer && GetLogicalProcessorInformation(buffer, &length)) {
+            int cores = 0;
+            int relationCoreCount = length / sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION);
+            for (int i = 0; i < relationCoreCount; i++) {
+                if (buffer[i].Relationship == RelationProcessorCore) {
+                    cores++;
+                }
+            }
+            systemCores = (cores > 0) ? cores : systemLogicalProcs;
+        }
+        free(buffer);
+    }
+    if (systemCores == 0) systemCores = systemLogicalProcs;
+}
+
+void InitStaticHardwareInfo() {
+    GetProcessorTopology();
+    sysHardware.cores = systemCores;
+    sysHardware.logicalProcessors = systemLogicalProcs;
+
+    MEMORYSTATUSEX memStatus;
+    memStatus.dwLength = sizeof(memStatus);
+    if (GlobalMemoryStatusEx(&memStatus)) {
+        sysHardware.ramTotalGB = memStatus.ullTotalPhys / (1024.0 * 1024.0 * 1024.0);
+    }
+}
+    
 ProcessCategory DetectProcessCategory(DWORD pid, const WCHAR* name) {
     if (_wcsicmp(name, L"svchost.exe") == 0 || _wcsicmp(name, L"csrss.exe") == 0 ||
         _wcsicmp(name, L"explorer.exe") == 0 || _wcsicmp(name, L"services.exe") == 0 ||
