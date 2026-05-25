@@ -56,3 +56,17 @@ struct DiskStats {
     ULONGLONG lastWrite; 
     ULONGLONG lastTime; 
 };
+
+ProcessInfo* processes = nullptr;
+INT processesCount = 0;
+INT processesCapacity = 0;
+
+DWORD* guiPids = nullptr;
+INT guiPidsCapacity = 0;
+INT guiPidsCount = 0;
+
+DOUBLE globalCpuLoad = 0.0;
+DOUBLE globalNetSpeed = 0.0;
+DWORD globalTotalThreads = 0;
+DWORD globalTotalHandles = 0;
+ULONGLONG globalSystemUptime = 0;
