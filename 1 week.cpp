@@ -94,3 +94,24 @@ std::string FormatMemory(DWORD bytes) {
     sprintf_s(buffer, "%.1f", mb);
     return std::string(buffer);
 }
+
+int FindPidInCpuHistory(DWORD pid) {
+    for (int i = 0; i < cpuHistoryCount; i++) if (cpuHistory[i].pid == pid) return i;
+    return -1;
+}
+
+int AddPidToCpuHistory(DWORD pid) {
+    if (cpuHistoryCount >= cpuHistoryCapacity) {
+        int newCap = (cpuHistoryCapacity == 0) ? 100 : cpuHistoryCapacity * 2;
+        ProcessCpuTime* newArr = new ProcessCpuTime[newCap];
+        for (int i = 0; i < cpuHistoryCount; i++) newArr[i] = cpuHistory[i];
+        delete[] cpuHistory;
+        cpuHistory = newArr;
+        cpuHistoryCapacity = newCap;
+    }
+    cpuHistory[cpuHistoryCount].pid = pid;
+    cpuHistory[cpuHistoryCount].lastKernel = 0;
+    cpuHistory[cpuHistoryCount].lastUser = 0;
+    cpuHistory[cpuHistoryCount].isActive = TRUE;
+    return cpuHistoryCount++;
+}
