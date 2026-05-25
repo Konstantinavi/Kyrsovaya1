@@ -57,19 +57,31 @@ struct DiskStats {
     ULONGLONG lastTime; 
 };
 
-ProcessInfo* processes = nullptr;
-INT processesCount = 0;
-INT processesCapacity = 0;
+ProcessCpuTime* cpuHistory = nullptr;  
+int cpuHistoryCount = 0;
+int cpuHistoryCapacity = 0;
 
-DWORD* guiPids = nullptr;
-INT guiPidsCapacity = 0;
-INT guiPidsCount = 0;
+DiskStats* diskHistory = nullptr;  
+int diskHistoryCount = 0;
+int diskHistoryCapacity = 0;
 
-DOUBLE globalCpuLoad = 0.0;
+DWORD* guiPids = nullptr;     
+int guiPidsCapacity = 0;
+int guiPidsCount = 0;
+
+ProcessInfo* processes = nullptr;  
+int processesCount = 0;
+int processesCapacity = 0;
+
+DOUBLE globalCpuLoad = 0.0;       
 DOUBLE globalNetSpeed = 0.0;
 DWORD globalTotalThreads = 0;
 DWORD globalTotalHandles = 0;
-ULONGLONG globalSystemUptime = 0;
+ULONGLONG globalSystemUptime = 0;  
+
+int systemCores = 0;  
+int systemLogicalProcs = 0;
+SystemHardware sysHardware;
 
 void ClearGuiArray();
 void EnsureGuiPidsCapacity(INT needed);
