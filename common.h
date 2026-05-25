@@ -70,3 +70,15 @@ DOUBLE globalNetSpeed = 0.0;
 DWORD globalTotalThreads = 0;
 DWORD globalTotalHandles = 0;
 ULONGLONG globalSystemUptime = 0;
+
+void ClearGuiArray();
+void EnsureGuiPidsCapacity(INT needed);
+void AddPidToGuiArray(DWORD pid);
+BOOL IsPidInGuiArray(DWORD pid);
+BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam);
+void RefreshGuiProcessesList();
+void ClearProcessesData();
+void EnsureProcessesCapacity(INT needed);
+void EnsureRenderItemsCapacity(INT needed);
+void FreeProcessesArray();
+INT GetProcesses();
