@@ -21,3 +21,11 @@ void InitDoubleBuffer(int width, int height) {
     }
     SetConsoleActiveScreenBuffer(hBuffers[currentBuffer]);
 }
+void DrawLine(HANDLE hBuf, INT row, const std::string& text, WORD attributes) {
+    if (row < 0 || row >= consoleHeight) return;
+    
+    COORD coord = { 0, (SHORT)row };
+    DWORD written;
+    WriteConsoleOutputCharacterA(hBuf, text.c_str(), (DWORD)text.length(), coord, &written);
+    FillConsoleOutputAttribute(hBuf, attributes, consoleWidth, coord, &written);
+}
