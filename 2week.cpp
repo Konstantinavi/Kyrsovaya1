@@ -16,3 +16,17 @@ DWORD GetSelectedProcessPid() {
     }
     return 0;
 }
+void KillSelectedProcess() {
+    if (selectedIndex < 0 || selectedIndex >= renderItemsCount) return;
+    if (renderItems[selectedIndex].isHeader) return;
+
+    int pIdx = renderItems[selectedIndex].procIndex;
+    if (pIdx >= 0 && pIdx < processesCount) {
+        HANDLE hProcess = OpenProcess(PROCESS_TERMINATE, FALSE, processes[pIdx].pid);
+        if (hProcess != NULL) {
+            TerminateProcess(hProcess, 0);
+            CloseHandle(hProcess);
+            Sleep(200);
+        }
+    }
+}
