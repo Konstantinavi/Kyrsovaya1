@@ -30,3 +30,12 @@ void KillSelectedProcess() {
         }
     }
 }
+DWORD GetSelectedProcessPid() {
+    if (selectedIndex >= 0 && selectedIndex < renderItemsCount && !renderItems[selectedIndex].isHeader) {
+        int pIdx = renderItems[selectedIndex].procIndex;
+        if (pIdx >= 0 && pIdx < processesCount) {
+            return processes[pIdx].pid;
+        }
+    }
+    return 0;
+}
