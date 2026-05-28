@@ -1,12 +1,9 @@
-Переменные:
 int selectedIndex = 1;
 int scrollOffset = 0;
-
 const int visibleRows = 30;
 const int consoleWidth = 120;
 const int consoleHeight = 50;
 
-Код:
 DWORD GetSelectedProcessPid() {
     if (selectedIndex >= 0 && selectedIndex < renderItemsCount && !renderItems[selectedIndex].isHeader) {
         int pIdx = renderItems[selectedIndex].procIndex;
@@ -64,7 +61,6 @@ void RestoreSelectionByPid(DWORD targetPid) {
         }
     }
 }
-
 void UpdateScrollLimits() {
     if (selectedIndex >= renderItemsCount) selectedIndex = renderItemsCount - 1;
     if (selectedIndex < 0) selectedIndex = 0;
@@ -80,5 +76,13 @@ void UpdateScrollLimits() {
     }
     if (selectedIndex >= scrollOffset + visibleRows) {
         scrollOffset = selectedIndex - visibleRows + 1;
+    }
+}
+void MoveCursorUp() {
+    if (selectedIndex > 0) {
+        selectedIndex--;
+        if (renderItems[selectedIndex].isHeader && selectedIndex > 0) {
+            selectedIndex--;
+        }
     }
 }
