@@ -94,3 +94,12 @@ void MoveCursorDown() {
         }
     }
 }
+void MoveCursorPage(int direction) {
+    selectedIndex += (direction * 10);
+    if (selectedIndex < 0) selectedIndex = 0;
+    if (selectedIndex >= renderItemsCount) selectedIndex = renderItemsCount - 1;
+    if (selectedIndex < renderItemsCount && renderItems[selectedIndex].isHeader) {
+        if (direction < 0 && selectedIndex < renderItemsCount - 1) selectedIndex++;
+        else if (direction > 0 && selectedIndex > 0) selectedIndex--;
+    }
+}
