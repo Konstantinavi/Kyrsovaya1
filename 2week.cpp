@@ -64,3 +64,21 @@ void RestoreSelectionByPid(DWORD targetPid) {
         }
     }
 }
+
+void UpdateScrollLimits() {
+    if (selectedIndex >= renderItemsCount) selectedIndex = renderItemsCount - 1;
+    if (selectedIndex < 0) selectedIndex = 0;
+
+    if (selectedIndex < scrollOffset) {
+        scrollOffset = selectedIndex;
+    }
+    if (scrollOffset + visibleRows > renderItemsCount) {
+        scrollOffset = renderItemsCount - visibleRows;
+    }
+    if (scrollOffset < 0) {
+        scrollOffset = 0;
+    }
+    if (selectedIndex >= scrollOffset + visibleRows) {
+        scrollOffset = selectedIndex - visibleRows + 1;
+    }
+}
