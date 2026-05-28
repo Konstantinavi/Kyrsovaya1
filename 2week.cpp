@@ -86,3 +86,11 @@ void MoveCursorUp() {
         }
     }
 }
+void MoveCursorDown() {
+    if (selectedIndex < renderItemsCount - 1) {
+        selectedIndex++;
+        if (renderItems[selectedIndex].isHeader && selectedIndex < renderItemsCount - 1) {
+            selectedIndex++;
+        }
+    }
+}
