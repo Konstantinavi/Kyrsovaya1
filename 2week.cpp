@@ -21,12 +21,18 @@ void InitDoubleBuffer(int width, int height) {
     }
     SetConsoleActiveScreenBuffer(hBuffers[currentBuffer]);
 }
-void DrawLine(HANDLE hBuf, INT row, const std::string& text, WORD attributes) {
+void DrawLine(HANDLE hBuf, int row, const std::string& text, WORD attributes = FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE) {
     if (row < 0 || row >= consoleHeight) return;
-    
-    COORD coord = { 0, (SHORT)row };
+    std::string formatText = text;
+    if (formatText.length() < static_cast<size_t>(consoleWidth)) {
+        formatText.append(consoleWidth - formatText.length(), ' ');
+    }
+    else if (formatText.length() > static_cast<size_t>(consoleWidth)) {
+        formatText = formatText.substr(0, consoleWidth);
+    }
+    COORD coord = { 0, static_cast<SHORT>(row) };
     DWORD written;
-    WriteConsoleOutputCharacterA(hBuf, text.c_str(), (DWORD)text.length(), coord, &written);
+    WriteConsoleOutputCharacterA(hBuf, formatText.c_str(), static_cast<DWORD>(formatText.length()), coord, &written);
     FillConsoleOutputAttribute(hBuf, attributes, consoleWidth, coord, &written);
 }
 void BuildRenderItems() {
@@ -77,7 +83,6 @@ void BuildRenderItems() {
         }
     }
 }
-
 void RenderScreen() {
     HANDLE hBuf = hBuffers[currentBuffer];
     int row = 0;
@@ -95,12 +100,6 @@ void RenderScreen() {
     std::string rightWidget[36];
     char buf[64];
     for (int i = 0; i < 36; i++) rightWidget[i] = "";
-    ULARGE_INTEGER fAvail, tBytes, tFree;
-    double globalDiskTotalGB = 0.0, globalDiskFreeGB = 0.0;
-    if (GetDiskFreeSpaceExW(L"C:\\", &fAvail, &tBytes, &tFree)) {
-        globalDiskTotalGB = tBytes.QuadPart / (1024.0 * 1024.0 * 1024.0);
-        globalDiskFreeGB = tFree.QuadPart / (1024.0 * 1024.0 * 1024.0);
-    }
     rightWidget[0] = "ПРОЦЕССОР";
     sprintf_s(buf, "Загрузка ЦП:  %.1f%%", globalCpuLoad); rightWidget[1] = buf;
     sprintf_s(buf, "Ядра / Поток: %u / %u", sysHardware.cores, sysHardware.logicalProcessors); rightWidget[2] = buf;
@@ -115,13 +114,17 @@ void RenderScreen() {
     sprintf_s(buf, "Всего в ПК:   %.1f ГБ", sysHardware.ramTotalGB); rightWidget[11] = buf;
     rightWidget[12] = "--------------------";
     rightWidget[13] = "ДИСК (C:)";
+    double globalDiskTotalGB = 0.0, globalDiskFreeGB = 0.0;
+    ULARGE_INTEGER fAvail, tBytes, tFree;
+    if (GetDiskFreeSpaceExW(L"C:\\", &fAvail, &tBytes, &tFree)) {
+        globalDiskTotalGB = tBytes.QuadPart / (1024.0 * 1024.0 * 1024.0);
+        globalDiskFreeGB = tFree.QuadPart / (1024.0 * 1024.0 * 1024.0);
+    }
     sprintf_s(buf, "Свободно:     %.1f ГБ", globalDiskFreeGB); rightWidget[14] = buf;
     sprintf_s(buf, "Емкость:      %.1f ГБ", globalDiskTotalGB); rightWidget[15] = buf;
     rightWidget[16] = "--------------------";
     rightWidget[17] = "СЕТЬ (АКТИВНОСТЬ)";
-    double totalNetSpeed = 0.0;
-    for (int i = 0; i < processesCount; i++) totalNetSpeed += processes[i].netUsage;
-    sprintf_s(buf, "Общий поток:  %.2f Мбит/с", totalNetSpeed); rightWidget[18] = buf;
+    sprintf_s(buf, "Общий поток:  %.2f Мбит/с", globalNetSpeed); rightWidget[18] = buf;
     rightWidget[19] = "--------------------";
     int appsCount = 0, bgCount = 0, winCount = 0;
     for (int i = 0; i < processesCount; i++) {
@@ -129,40 +132,43 @@ void RenderScreen() {
         else if (processes[i].category == CAT_BACKGROUND) bgCount++;
         else winCount++;
     }
-    for (int i = scrollOffset; i < renderItemsCount && row < 4 + visibleRows; ++i) {
+    for (int lineIdx = 0; lineIdx < visibleRows; ++lineIdx) {
+        int itemIdx = scrollOffset + lineIdx;
         std::string leftPart = "";
-        int currentWidgetLine = row - 4;
-        if (renderItems[i].isHeader) {
-            leftPart = renderItems[i].text;
-            if (leftPart.length() < 80) leftPart.append(80 - leftPart.length(), ' ');
-            else leftPart = leftPart.substr(0, 80);
-        }
-        else {
-            int pIdx = renderItems[i].procIndex;
-            if (pIdx >= 0 && pIdx < processesCount) {
-                const ProcessInfo& proc = processes[pIdx];
-                char line[256];
-                char cpuStr[16], diskStr[16], netStr[16];
-                sprintf_s(cpuStr, "%.1f", proc.cpuUsage);
-                sprintf_s(diskStr, "%.1f", proc.diskUsage);
-                sprintf_s(netStr, "%.1f", proc.netUsage);
-                std::string name = WStringToString(proc.name);
-                if (name.length() > 18) name = name.substr(0, 15) + "...";
-                const char* prefix = (i == selectedIndex) ? "[X] " : "    ";
-                sprintf_s(line, "%s%-7d %-18s %-7s %-12s %-11s %-11s",
-                    prefix, proc.pid, name.c_str(), cpuStr,
-                    FormatMemory(proc.memoryUsage).c_str(), diskStr, netStr);
-                leftPart = line;
+        if (itemIdx < renderItemsCount) {
+            if (renderItems[itemIdx].isHeader) {
+                leftPart = renderItems[itemIdx].text;
             }
-            if (leftPart.length() < 80) leftPart.append(80 - leftPart.length(), ' ');
-            else leftPart = leftPart.substr(0, 80);
+            else {
+                int pIdx = renderItems[itemIdx].procIndex;
+                if (pIdx >= 0 && pIdx < processesCount) {
+                    const ProcessInfo& proc = processes[pIdx];
+                    char line[256];
+                    char cpuStr[16], diskStr[16], netStr[16];
+                    sprintf_s(cpuStr, "%.1f", proc.cpuUsage);
+                    sprintf_s(diskStr, "%.1f", proc.diskUsage);
+                    sprintf_s(netStr, "%.1f", proc.netUsage);
+
+                    std::string name = WStringToString(proc.name);
+                    if (name.length() > 18) name = name.substr(0, 15) + "...";
+
+                    const char* prefix = (itemIdx == selectedIndex) ? "[X] " : "    ";
+                    sprintf_s(line, "%s%-7d %-18s %-7s %-12s %-11s %-11s",
+                        prefix, proc.pid, name.c_str(), cpuStr,
+                        FormatMemory(proc.memoryUsage).c_str(), diskStr, netStr);
+                    leftPart = line;
+                }
+            }
         }
-        std::string rightPart = (currentWidgetLine >= 0 && currentWidgetLine < 36) ? rightWidget[currentWidgetLine] : "";
+        if (leftPart.length() < 80) leftPart.append(80 - leftPart.length(), ' ');
+        else leftPart = leftPart.substr(0, 80);
+        std::string rightPart = (lineIdx >= 0 && lineIdx < 36) ? rightWidget[lineIdx] : "";
         std::string fullLine = leftPart + " | " + rightPart;
         WORD lineAttr = monoAttr;
-        if (currentWidgetLine == 0 || currentWidgetLine == 8 || currentWidgetLine == 13 || currentWidgetLine == 17) {
+        if (lineIdx == 0 || lineIdx == 8 || lineIdx == 13 || lineIdx == 17) {
             lineAttr = monoIntensity;
         }
+
         DrawLine(hBuf, row++, fullLine, lineAttr);
     }
     row = 4 + visibleRows;
@@ -184,7 +190,8 @@ void RenderScreen() {
         DrawLine(hBuf, row++, "Нет выбранного процесса (выбран заголовок)", monoAttr);
     }
     char stats[256];
-    sprintf_s(stats, "Всего процессов: %d | Приложений: %d | Фоновых: %d | Системных: %d", processesCount, appsCount, bgCount, winCount);
+    sprintf_s(stats, "Всего процессов: %d | Приложений: %d | Фоновых: %d | Системных: %d",
+        processesCount, appsCount, bgCount, winCount);
     DrawLine(hBuf, row++, stats, monoAttr);
     DrawLine(hBuf, row++, std::string(consoleWidth, '-'), monoAttr);
     DrawLine(hBuf, row++, "УПРАВЛЕНИЕ: ↑/↓ - Выбор | PgUp/PgDn - Скролл | K - Завершить процесс | Q/ESC - Выход", monoAttr);
