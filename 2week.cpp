@@ -37,10 +37,24 @@ DWORD GetSelectedProcessPid() {
     return 0;
 }
 void RestoreSelectionByPid(DWORD targetPid) {
-    if (targetPid == 0) return;
+    if (targetPid == 0) {
+        for (int i = 0; i < renderItemsCount; i++) {
+            if (!renderItems[i].isHeader) {
+                selectedIndex = i;
+                return;
+            }
+        }
+        selectedIndex = 0;
+        return;
+    }
+    
     BOOL found = FALSE;
+    int firstProcessIndex = -1;
+    
     for (int i = 0; i < renderItemsCount; i++) {
         if (!renderItems[i].isHeader) {
+            if (firstProcessIndex == -1) firstProcessIndex = i;
+            
             int pIdx = renderItems[i].procIndex;
             if (pIdx >= 0 && pIdx < processesCount && processes[pIdx].pid == targetPid) {
                 selectedIndex = i;
@@ -49,15 +63,27 @@ void RestoreSelectionByPid(DWORD targetPid) {
             }
         }
     }
+    
     if (!found) {
-        if (selectedIndex >= renderItemsCount) {
-            selectedIndex = renderItemsCount - 1;
+        if (firstProcessIndex != -1) {
+            selectedIndex = firstProcessIndex;
+        } else {
+            selectedIndex = 0;
         }
-        if (selectedIndex < 1) {
-            selectedIndex = 1;
+    }
+    
+    if (selectedIndex < renderItemsCount && renderItems[selectedIndex].isHeader) {
+        for (int i = selectedIndex + 1; i < renderItemsCount; i++) {
+            if (!renderItems[i].isHeader) {
+                selectedIndex = i;
+                return;
+            }
         }
-        if (selectedIndex < renderItemsCount && renderItems[selectedIndex].isHeader && selectedIndex < renderItemsCount - 1) {
-            selectedIndex++;
+        for (int i = selectedIndex - 1; i >= 0; i--) {
+            if (!renderItems[i].isHeader) {
+                selectedIndex = i;
+                return;
+            }
         }
     }
 }
