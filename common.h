@@ -114,7 +114,14 @@ void DrawLine(HANDLE hBuf, int row, const std::string& text, WORD attributes);
 void BuildRenderItems();
 void RenderScreen();
 
-
+DWORD GetSelectedProcessPid();
+void KillSelectedProcess();
+void RestoreSelectionByPid(DWORD targetPid);
+void UpdateScrollLimits();
+void MoveCursorUp();
+void MoveCursorDown();
+void MoveCursorPage(int direction);
+void ProcessKeyboardInput(BOOL& isRunning);
 
 
 
