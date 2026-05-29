@@ -103,3 +103,23 @@ void MoveCursorPage(int direction) {
         else if (direction > 0 && selectedIndex > 0) selectedIndex--;
     }
 }
+void ProcessKeyboardInput(BOOL& isRunning) {
+    if (GetAsyncKeyState(VK_UP) & 0x0001) {
+        MoveCursorUp();
+    }
+    if (GetAsyncKeyState(VK_DOWN) & 0x0001) {
+        MoveCursorDown();
+    }
+    if (GetAsyncKeyState(VK_PRIOR) & 0x0001) {
+        MoveCursorPage(-1);
+    }
+    if (GetAsyncKeyState(VK_NEXT) & 0x0001) {
+        MoveCursorPage(1);
+    }
+    if (GetAsyncKeyState('K') & 0x0001) {
+        KillSelectedProcess();
+    }
+    if ((GetAsyncKeyState('Q') & 0x0001) || (GetAsyncKeyState(VK_ESCAPE) & 0x0001)) {
+        isRunning = FALSE;
+    }
+}
