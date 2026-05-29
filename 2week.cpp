@@ -123,3 +123,54 @@ void ProcessKeyboardInput(BOOL& isRunning) {
         isRunning = FALSE;
     }
 }
+int main() {
+    SetConsoleOutputCP(1251);
+    SetConsoleCP(1251);
+
+    InitStaticHardwareInfo();
+
+    char modeCmd[64];
+    sprintf_s(modeCmd, "mode con cols=%d lines=%d", consoleWidth, consoleHeight);
+    system(modeCmd);
+
+    InitDoubleBuffer(consoleWidth, consoleHeight);
+
+    BOOL running = TRUE;
+    GetProcesses();
+    BuildRenderItems();
+    Sleep(200);
+
+    selectedIndex = 1;
+
+    while (running) {
+        DWORD lastSelectedPid = GetSelectedProcessPid();
+
+        GetProcesses();
+        BuildRenderItems();
+
+        RestoreSelectionByPid(lastSelectedPid);
+        UpdateScrollLimits();
+
+        RenderScreen();
+
+        ProcessKeyboardInput(running);
+
+        Sleep(100);
+    }
+
+    CloseHandle(hBuffers[0]);
+    CloseHandle(hBuffers[1]);
+    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+    SetConsoleActiveScreenBuffer(hConsole);
+
+    FreeProcessesArray();
+    delete[] cpuHistory;
+    delete[] diskHistory;
+    delete[] guiPids;
+    delete[] renderItems;
+
+    system("cls");
+    std::cout << "Программа успешно завершена." << std::endl;
+
+    return 0;
+}
