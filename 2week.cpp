@@ -3,6 +3,7 @@ int scrollOffset = 0;
 const int visibleRows = 30;
 const int consoleWidth = 120;
 const int consoleHeight = 50;
+int lastSelectedCategoryOffset = 0;  
 
 DWORD GetSelectedProcessPid() {
     if (selectedIndex >= 0 && selectedIndex < renderItemsCount && !renderItems[selectedIndex].isHeader) {
@@ -16,6 +17,11 @@ DWORD GetSelectedProcessPid() {
 void KillSelectedProcess() {
     if (selectedIndex < 0 || selectedIndex >= renderItemsCount) return;
     if (renderItems[selectedIndex].isHeader) return;
+    int offset = 0;
+    for (int i = 0; i < selectedIndex; i++) {
+        if (!renderItems[i].isHeader) offset++;
+    }
+    lastSelectedCategoryOffset = offset;
 
     int pIdx = renderItems[selectedIndex].procIndex;
     if (pIdx >= 0 && pIdx < processesCount) {
