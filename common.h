@@ -109,6 +109,11 @@ int FindPidInDiskHistory(DWORD pid);
 int AddPidToDiskHistory(DWORD pid);
 double GetProcessDisk(DWORD pid, unsigned long long readBytes, unsigned long long writeBytes);
 double GetRealNetworkUsage(ProcessInfo& proc, const IO_COUNTERS& ioCounters, unsigned long long currentTime);
+void InitDoubleBuffer(int width, int height);
+void DrawLine(HANDLE hBuf, int row, const std::string& text, WORD attributes);
+void BuildRenderItems();
+void RenderScreen();
+
 
 
 
