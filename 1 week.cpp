@@ -1,3 +1,4 @@
+#include 'common.h'
 void ClearGuiArray() {
     delete[] guiPids;
     guiPids = nullptr;
