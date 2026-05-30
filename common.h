@@ -48,6 +48,7 @@ struct ProcessCpuTime {
     ULONGLONG lastKernel; 
     ULONGLONG lastUser; 
     BOOL isActive; 
+    BOOL isSuspended
 };
 
 struct DiskStats { 
