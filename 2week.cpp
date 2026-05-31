@@ -173,21 +173,32 @@ void RenderScreen() {
     }
     row = 4 + visibleRows;
     DrawLine(hBuf, row++, std::string(consoleWidth, '='), monoAttr);
+
     if (selectedIndex >= 0 && selectedIndex < renderItemsCount && !renderItems[selectedIndex].isHeader) {
         int pIdx = renderItems[selectedIndex].procIndex;
         if (pIdx >= 0 && pIdx < processesCount) {
             char selectedInfo[512];
-            sprintf_s(selectedInfo, "ВЫБРАН ПРОЦЕСС: %s (PID: %d) | CPU: %.1f%% | Память: %s МБ | Диск: %.1f МБ/с | Сеть: %.1f Мбит/с",
-                WStringToString(processes[pIdx].name).c_str(), processes[pIdx].pid, processes[pIdx].cpuUsage,
-                FormatMemory(processes[pIdx].memoryUsage).c_str(), processes[pIdx].diskUsage, processes[pIdx].netUsage);
+
+            // Проверяем флаг из нашей истории
+            std::string statusStr = "АКТИВЕН";
+            int idx = FindPidInCpuHistory(processes[pIdx].pid);
+            if (idx != -1 && cpuHistory[idx].isSuspended) {
+                statusStr = "ЗАМОРОЖЕН";
+            }
+
+            sprintf_s(selectedInfo, "ВЫБРАН ПРОЦЕСС: %s (PID: %d) | СТАТУС: [%s] | CPU: %.1f%% | Память: %s МБ | Диск: %.1f МБ/с",
+                WStringToString(processes[pIdx].name).c_str(),
+                processes[pIdx].pid,
+                statusStr.c_str(),
+                processes[pIdx].cpuUsage,
+                FormatMemory(processes[pIdx].memoryUsage).c_str(),
+                processes[pIdx].diskUsage);
+
             DrawLine(hBuf, row++, selectedInfo, monoIntensity);
         }
         else {
             DrawLine(hBuf, row++, "Ошибка получения данных процесса", monoAttr);
         }
-    }
-    else {
-        DrawLine(hBuf, row++, "Нет выбранного процесса (выбран заголовок)", monoAttr);
     }
     char stats[256];
     sprintf_s(stats, "Всего процессов: %d | Приложений: %d | Фоновых: %d | Системных: %d",
