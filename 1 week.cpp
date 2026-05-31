@@ -8,10 +8,14 @@ void GetProcessorTopology() {
     DWORD length = 0;
     GetLogicalProcessorInformation(nullptr, &length);
     if (length > 0) {
-        PSYSTEM_LOGICAL_PROCESSOR_INFORMATION buffer = (PSYSTEM_LOGICAL_PROCESSOR_INFORMATION)malloc(length);
-        if (buffer && GetLogicalProcessorInformation(buffer, &length)) {
+        char* byteBuffer = new char[length];
+        
+        if (byteBuffer && GetLogicalProcessorInformation(reinterpret_cast<PSYSTEM_LOGICAL_PROCESSOR_INFORMATION>(byteBuffer), &length)) {
+            
             int cores = 0;
             int relationCoreCount = length / sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION);
+            PSYSTEM_LOGICAL_PROCESSOR_INFORMATION buffer = reinterpret_cast<PSYSTEM_LOGICAL_PROCESSOR_INFORMATION>(byteBuffer);
+            
             for (int i = 0; i < relationCoreCount; i++) {
                 if (buffer[i].Relationship == RelationProcessorCore) {
                     cores++;
@@ -19,7 +23,7 @@ void GetProcessorTopology() {
             }
             systemCores = (cores > 0) ? cores : systemLogicalProcs;
         }
-        free(buffer);
+        delete[] byteBuffer;
     }
     if (systemCores == 0) systemCores = systemLogicalProcs;
 }
@@ -41,20 +45,20 @@ void UpdateSystemPerformanceData() {
     sysHardware.totalThreads = globalTotalThreads;
     sysHardware.totalHandles = globalTotalHandles;
 
-    unsigned long long systemUptime = GetTickCount64() / 1000;
+    ULONGLONG systemUptime = GetTickCount64() / 1000;
     DWORD days = static_cast<DWORD>(systemUptime / 86400);
     DWORD hours = static_cast<DWORD>((systemUptime % 86400) / 3600);
     DWORD minutes = static_cast<DWORD>((systemUptime % 3600) / 60);
     DWORD seconds = static_cast<DWORD>(systemUptime % 60);
 
-    char uptimeBuffer[64];
-    sprintf_s(uptimeBuffer, "%lu:%02lu:%02lu:%02lu", days, hours, minutes, seconds);
-    sysHardware.uptimeStr = uptimeBuffer;
+    sysHardware.uptimeStr = std::to_string(days) + ":" + 
+                            (hours < 10 ? "0" : "") + std::to_string(hours) + ":" + 
+                            (minutes < 10 ? "0" : "") + std::to_string(minutes) + ":" + 
+                            (seconds < 10 ? "0" : "") + std::to_string(seconds);
 
     MEMORYSTATUSEX memStatus;
     memStatus.dwLength = sizeof(memStatus);
     if (GlobalMemoryStatusEx(&memStatus)) {
-        sysHardware.ramTotalGB = memStatus.ullTotalPhys / (1024.0 * 1024.0 * 1024.0);
         sysHardware.ramUsedGB = (memStatus.ullTotalPhys - memStatus.ullAvailPhys) / (1024.0 * 1024.0 * 1024.0);
         sysHardware.ramFreeGB = memStatus.ullAvailPhys / (1024.0 * 1024.0 * 1024.0);
     }
@@ -71,7 +75,7 @@ ProcessCategory DetectProcessCategory(DWORD pid, const WCHAR* name) {
     return CAT_BACKGROUND;
 }
 
-unsigned long long FileTimeToQuadWord(const FILETIME* ft) {
+ULONGLONG FileTimeToQuadWord(const FILETIME* ft) {
     if (ft == nullptr) return 0;
     ULARGE_INTEGER uli;
     uli.LowPart = ft->dwLowDateTime;
@@ -83,8 +87,11 @@ std::string WStringToString(const WCHAR* wstr) {
     if (!wstr) return "";
     int size = WideCharToMultiByte(1251, 0, wstr, -1, nullptr, 0, nullptr, nullptr);
     if (size <= 0) return "";
-    std::string result(size - 1, 0);
+    
+    std::string result(size, 0);
     WideCharToMultiByte(1251, 0, wstr, -1, &result[0], size, nullptr, nullptr);
+    
+    result.resize(size - 1);
     return result;
 }
 
@@ -103,8 +110,10 @@ int FindPidInCpuHistory(DWORD pid) {
 int AddPidToCpuHistory(DWORD pid) {
     if (cpuHistoryCount >= cpuHistoryCapacity) {
         int newCap = (cpuHistoryCapacity == 0) ? 100 : cpuHistoryCapacity * 2;
+        
         ProcessCpuTime* newArr = new ProcessCpuTime[newCap];
         for (int i = 0; i < cpuHistoryCount; i++) newArr[i] = cpuHistory[i];
+        
         delete[] cpuHistory;
         cpuHistory = newArr;
         cpuHistoryCapacity = newCap;
@@ -116,11 +125,11 @@ int AddPidToCpuHistory(DWORD pid) {
     return cpuHistoryCount++;
 }
 
-double GetProcessCpu(DWORD pid, unsigned long long curKernel, unsigned long long curUser, unsigned long long sysDelta) {
+double GetProcessCpu(DWORD pid, ULONGLONG curKernel, ULONGLONG curUser, ULONGLONG sysDelta) {
     int idx = FindPidInCpuHistory(pid);
     if (idx != -1) {
-        unsigned long long prevTotal = cpuHistory[idx].lastKernel + cpuHistory[idx].lastUser;
-        unsigned long long curTotal = curKernel + curUser;
+        ULONGLONG prevTotal = cpuHistory[idx].lastKernel + cpuHistory[idx].lastUser;
+        ULONGLONG curTotal = curKernel + curUser;
         if (curTotal >= prevTotal && sysDelta > 0) {
             double percent = static_cast<double>((curTotal - prevTotal) * 100) / static_cast<double>(sysDelta);
             cpuHistory[idx].lastKernel = curKernel;
@@ -146,8 +155,10 @@ int FindPidInDiskHistory(DWORD pid) {
 int AddPidToDiskHistory(DWORD pid) {
     if (diskHistoryCount >= diskHistoryCapacity) {
         int newCap = (diskHistoryCapacity == 0) ? 100 : diskHistoryCapacity * 2;
+        
         DiskStats* newArr = new DiskStats[newCap];
         for (int i = 0; i < diskHistoryCount; i++) newArr[i] = diskHistory[i];
+        
         delete[] diskHistory;
         diskHistory = newArr;
         diskHistoryCapacity = newCap;
@@ -159,19 +170,19 @@ int AddPidToDiskHistory(DWORD pid) {
     return diskHistoryCount++;
 }
 
-double GetProcessDisk(DWORD pid, unsigned long long readBytes, unsigned long long writeBytes) {
-    unsigned long long now = GetTickCount64();
+double GetProcessDisk(DWORD pid, ULONGLONG readBytes, ULONGLONG writeBytes) {
+    ULONGLONG now = GetTickCount64();
     int idx = FindPidInDiskHistory(pid);
     if (idx != -1) {
-        unsigned long long deltaTime = now - diskHistory[idx].lastTime;
-        if (deltaTime > 0) {
-            double mbps = static_cast<double>((readBytes - diskHistory[idx].lastRead) +
-                (writeBytes - diskHistory[idx].lastWrite)) / (1048576.0 * (deltaTime / 1000.0));
-            diskHistory[idx].lastRead = readBytes;
-            diskHistory[idx].lastWrite = writeBytes;
-            diskHistory[idx].lastTime = now;
-            return (mbps < 0) ? 0 : mbps;
-        }
+        ULONGLONG deltaTime = now - diskHistory[idx].lastTime;
+        if (deltaTime == 0) deltaTime = 1;
+        
+        double mbps = static_cast<double>((readBytes - diskHistory[idx].lastRead) +
+            (writeBytes - diskHistory[idx].lastWrite)) / (1048576.0 * (deltaTime / 1000.0));
+        diskHistory[idx].lastRead = readBytes;
+        diskHistory[idx].lastWrite = writeBytes;
+        diskHistory[idx].lastTime = now;
+        return (mbps < 0) ? 0 : mbps;
     }
     else {
         int newIdx = AddPidToDiskHistory(pid);
@@ -184,11 +195,11 @@ double GetProcessDisk(DWORD pid, unsigned long long readBytes, unsigned long lon
     return 0.0;
 }
 
-double GetRealNetworkUsage(ProcessInfo& proc, const IO_COUNTERS& ioCounters, unsigned long long currentTime) {
-    unsigned long long currentNetBytes = ioCounters.OtherTransferCount;
+double GetRealNetworkUsage(ProcessInfo& proc, const IO_COUNTERS& ioCounters, ULONGLONG currentTime) {
+    ULONGLONG currentNetBytes = ioCounters.OtherTransferCount;
     if (proc.lastUpdateTime != 0 && currentTime > proc.lastUpdateTime) {
-        unsigned long long timeDelta = currentTime - proc.lastUpdateTime;
-        unsigned long long netDiff = currentNetBytes - proc.lastNetBytes;
+        ULONGLONG timeDelta = currentTime - proc.lastUpdateTime;
+        ULONGLONG netDiff = currentNetBytes - proc.lastNetBytes;
         double speedMbps = (static_cast<double>(netDiff) * 8.0) / (1000000.0 * (timeDelta / 1000.0));
         proc.lastNetBytes = currentNetBytes;
         return (speedMbps < 0) ? 0 : speedMbps;
