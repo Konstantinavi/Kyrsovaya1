@@ -151,6 +151,15 @@ void ProcessKeyboardInput(BOOL& isRunning) {
     if (GetAsyncKeyState('K') & 0x0001) {
         KillSelectedProcess();
     }
+    if (GetAsyncKeyState('F') & 0x0001) {
+        SuspendSelectedProcess();
+    }
+    if (GetAsyncKeyState('R') & 0x0001) {
+        ResumeSelectedProcess();
+    }
+    if (GetAsyncKeyState('N') & 0x0001) {
+        StartNewProcessPrompt();
+    }
     if ((GetAsyncKeyState('Q') & 0x0001) || (GetAsyncKeyState(VK_ESCAPE) & 0x0001)) {
         isRunning = FALSE;
     }
